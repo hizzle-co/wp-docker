@@ -1,0 +1,10 @@
+# WordPress CRON every minute
+* * * * * root curl -s "${COOLIFY_FQDN}/wp-cron.php?doing_wp_cron" | sed "s/^/[WordPress CRON] /" >> /proc/1/fd/1 2>&1
+
+# Database backup every day at midnight
+0 0 * * * root /usr/local/bin/db-backup.sh | sed "s/^/[Database Backup] /" >> /proc/1/fd/1 2>&1
+
+# Files backup every Sunday at midnight
+0 0 * * 0 root /usr/local/bin/file-backup.sh | sed "s/^/[Files Backup] /" >> /proc/1/fd/1 2>&1
+
+# An empty line is required at the end of this file for a valid cron file
