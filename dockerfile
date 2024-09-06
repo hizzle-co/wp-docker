@@ -1,14 +1,19 @@
 # Use the official WordPress image as the base
 FROM wordpress:latest
 
-# Enable Apache headers module
-RUN a2enmod headers
-
-# Install the Redis PHP extension
-RUN pecl install redis && docker-php-ext-enable redis
-
-# Install cron and nano
-RUN apt-get update && apt-get install -y cron nano && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install dependencies and wp-cli
+RUN apt-get update && apt-get install -y \
+    cron \
+    nano \
+    less \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && a2enmod headers \
+    && curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+    && chmod +x wp-cli.phar \
+    && mv wp-cli.phar /usr/local/bin/wp \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Setup db-backup script
 COPY db-backup.sh /usr/local/bin/db-backup.sh
@@ -27,16 +32,25 @@ COPY restore-files.sh /usr/local/bin/restore-files.sh
 RUN chmod +x /usr/local/bin/restore-files.sh
 
 # Copy the cron job file to the cron.d directory
-COPY cron.job /etc/cron.d/cron.job
+COPY cron.job /etc/cron.d/wordpress-cron
 
-# Give execution rights on the cron job
-RUN chmod 0644 /etc/cron.d/cron.job
+# Give execution rights on the cron job and create the log file
+RUN chmod 0644 /etc/cron.d/wordpress-cron \
+    && touch /var/log/cron.log
 
 # Apply the cron job
-RUN crontab /etc/cron.d/cron.job
+RUN crontab /etc/cron.d/wordpress-cron
 
 # Start the cron daemon
 CMD ["cron", "-f"]
 
-# Run backup script at startup
-CMD ["/usr/local/bin/backup.sh"]
+# Maybe restore backup
+RUN /usr/local/bin/restore-db.sh
+RUN /usr/local/bin/restore-files.sh
+
+# Copy and set entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+CMD ["apache2-foreground"]
