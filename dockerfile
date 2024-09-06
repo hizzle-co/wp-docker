@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y \
     cron \
     nano \
     less \
+    pv \
+    aws-cli \
+    curl \
+    gzip \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && a2enmod headers \
@@ -13,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     && chmod +x wp-cli.phar \
     && mv wp-cli.phar /usr/local/bin/wp \
     && apt-get clean \
+    && rm -rf /var/cache/apk/*
     && rm -rf /var/lib/apt/lists/*
 
 # Setup db-backup script
